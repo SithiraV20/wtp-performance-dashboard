@@ -228,10 +228,10 @@ function App() {
                   <div style={styles.viewTitle}>RO Skid Recovery Analysis</div>
                   <div style={styles.grid2x2}>
                     {[
-                      { idx: 0, name: 'SWRO 1', badge: 'SEAWATER', lbl: 'FEED FLOW' },
-                      { idx: 1, name: 'SWRO 2', badge: 'SEAWATER', lbl: 'FEED FLOW' },
-                      { idx: 2, name: 'BWRO 1', badge: 'BRACKISH', lbl: 'INLET FLOW' },
-                      { idx: 3, name: 'BWRO 2', badge: 'BRACKISH', lbl: 'INLET FLOW' }
+                      { idx: 0, name: 'SWRO 1', badge: 'SEAWATER', lbl: 'Inlet Flow' },
+                      { idx: 1, name: 'SWRO 2', badge: 'SEAWATER', lbl: 'Inlet Flow' },
+                      { idx: 2, name: 'BWRO 1', badge: 'BRACKISH', lbl: 'Inlet Flow' },
+                      { idx: 3, name: 'BWRO 2', badge: 'BRACKISH', lbl: 'Inlet Flow' }
                     ].map((item) => {
                       const skidName = cell(item.idx, 'Skid', item.name);
                       const inletRaw = cell(item.idx, 'Inlet flow rate', '0.00');
@@ -244,7 +244,7 @@ function App() {
                       
                       const isPassing = actualPct >= guaranteePct;
                       const themeColor = isPassing ? '#22c55e' : '#ef4444';
-                      const alertMsg = isPassing ? '✅ Performance within guarantee window.' : '⚠️ Performance below guaranteed limits.';
+                      const alertMsg = isPassing ? 'Performance within guarantee window.' : '⚠️ Performance below guaranteed limits.';
                       return (
                         <div key={item.idx} style={styles.card}>
                           <div style={styles.cardHeader}>
@@ -282,7 +282,7 @@ function App() {
                 <div>
                   <div style={styles.viewTitle}>Average Flowrates (11:00 - 17:00)</div>
                   <div style={styles.card}><table style={styles.table}>
-                    <thead><tr><th style={styles.th}>Measuring Point</th><th style={styles.th}>Average Flow (M³/H)</th><th style={styles.th}>Guaranteed (M³/H)</th><th style={styles.th}>Status</th></tr></thead>
+                    <thead><tr><th style={styles.th}>Measuring Point</th><th style={styles.th}>Average Flow (m³/h)</th><th style={styles.th}>Guaranteed (m³/h)</th><th style={styles.th}>Status</th></tr></thead>
                     <tbody>
                       {[
                         { mp: 'Seawater Inlet flow', avg: '90.90', guar: '91.50', st: 'Under Target' },
@@ -373,7 +373,7 @@ function App() {
                   </div>
 
                   <div style={styles.card}><table style={styles.table}>
-                    <thead><tr><th style={styles.th}>Time</th><th style={styles.th}>Run Hours (RH)</th><th style={styles.th}>Active Power (KWHR)</th><th style={styles.th}>Cumulative Energy (MWHR)</th></tr></thead>
+                    <thead><tr><th style={styles.th}>Time</th><th style={styles.th}>Running Hours (h)</th><th style={styles.th}>Active Power (KWh)</th><th style={styles.th}>Cumulative Energy (MWh)</th></tr></thead>
                     <tbody>
                       {['11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'].map((time, i) => (
                         <tr key={i}>
@@ -471,7 +471,7 @@ function App() {
                   </div>
 
                   <div style={styles.chartContainer}>
-                    <div style={{ ...styles.flowLabel, marginBottom: '20px', color: '#1e293b' }}>Operational Expenditure Vector Proportions (OPEX)</div>
+                    <div style={{ ...styles.flowLabel, marginBottom: '20px', color: '#1e293b' }}>DM Water Production Cost Breakdown</div>
                     <div style={styles.splitLayout}>
                       <div style={{ width: '220px', height: '220px' }}>
                         <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
@@ -532,7 +532,7 @@ function App() {
                     .theme-spline-main { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: themeFluidDraw 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
                   `}</style>
 
-                  <div style={styles.viewTitle}>Monthly Production Output Intelligence</div>
+                  <div style={styles.viewTitle}>Monthly Production Summary</div>
 
                   {/* High-Fidelity Data Aggregation Processing Engine */}
                   {(() => {
@@ -577,7 +577,7 @@ function App() {
                         {/* ========================================== */}
                         <div style={{ ...styles.card, marginBottom: '32px' }}>
                           <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
-                            31-Day Demineralized Water Volumetric Capacity Heatmap
+                            DM Water Production Heatmap (Daily Demin Total Volume)
                           </div>
                           
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
@@ -662,8 +662,8 @@ function App() {
                                     }}>
                                       <div style={{ fontWeight: '700', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '6px', color: '#38bdf8' }}>{dateStr}</div>
                                       <div>⚡ Run Hours: <strong>{opHours} hrs</strong></div>
-                                      <div>💧 Raw Clear Water: <strong>{rowVals[2]} m³</strong></div>
-                                      <div>🛡️ UF Permeate: <strong>{rowVals[3]} m³</strong></div>
+                                      <div> Raw Clear Water: <strong>{rowVals[2]} m³</strong></div>
+                                      <div> UF Permeate: <strong>{rowVals[3]} m³</strong></div>
                                       <div>🏆 Demin Total: <strong>{deminVolume.toLocaleString()} m³</strong></div>
                                     </div>
                                   )}
@@ -674,7 +674,7 @@ function App() {
                           
                           <div style={{ display: 'flex', gap: '16px', marginTop: '16px', fontSize: '11px', fontWeight: '600', color: '#64748b', alignItems: 'center' }}>
                             <span>Legend:</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', backgroundColor: '#ffe4e6', border: '1px solid #fecaca', borderRadius: '3px', display: 'inline-block' }} /> Plant Shutdown</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', backgroundColor: '#ffe4e6', border: '1px solid #fecaca', borderRadius: '3px', display: 'inline-block' }} /> WTP Shutdown</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'rgba(37, 99, 235, 0.25)', borderRadius: '3px', display: 'inline-block' }} /> Low Flow Operations</div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}><span style={{ width: '12px', height: '12px', backgroundColor: 'rgba(37, 99, 235, 1)', borderRadius: '3px', display: 'inline-block' }} /> Peak Capacity Production</div>
                           </div>
@@ -686,7 +686,7 @@ function App() {
                         <div style={styles.chartContainer}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div style={{ ...styles.flowLabel, margin: 0, color: '#1e293b' }}>
-                              Sequential Water Journey (Multi-Stage Production Trends)
+                               Daily Water Production Trend (m³/day) 
                             </div>
                             <div style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: '700' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '12px', height: '3px', backgroundColor: '#94a3b8', display: 'inline-block' }} /> Clear Water Intake</div>
