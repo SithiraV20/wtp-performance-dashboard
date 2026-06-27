@@ -92,14 +92,16 @@ function App() {
     masterTabBtn: (isActive) => ({
       padding: '18px 4px', border: 'none', background: 'transparent',
       color: isActive ? '#ffffff' : '#94a3b8', fontWeight: '700', fontSize: '14px', cursor: 'pointer',
-      borderBottom: isActive ? '3px solid #3b82f6' : '3px solid transparent', transition: 'all 0.15s ease',
+      borderBottom: isActive ? '3px solid #3b82f6' : '3px solid transparent', 
+      transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)', // Buttery tab fade
       letterSpacing: '0.04em', textTransform: 'uppercase'
     }),
     tabRow: { display: 'flex', gap: '4px', backgroundColor: '#f1f5f9', padding: '12px 24px 0 24px', borderBottom: '1px solid #cbd5e1', overflowX: 'auto' },
     tabBtn: (isActive) => ({
       padding: '14px 22px', border: 'none', background: isActive ? '#ffffff' : 'transparent',
       color: isActive ? '#2563eb' : '#64748b', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
-      borderRadius: '8px 8px 0 0', borderTop: isActive ? '3px solid #2563eb' : '3px solid transparent', whiteSpace: 'nowrap'
+      borderRadius: '8px 8px 0 0', borderTop: isActive ? '3px solid #2563eb' : '3px solid transparent', 
+      whiteSpace: 'nowrap', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' // Buttery sub-tab shift
     }),
     contentArea: { padding: '32px' },
     viewTitle: { fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '24px' },
@@ -166,12 +168,12 @@ function App() {
 
   return (
     <div style={styles.wrapper}>
-      {/* Expanded Mask Bounds prevents animation stuttering across different displays */}
+      {/* Dynamic Global Custom CSS Injections for Unified Butter Animations */}
       <style>{`
         @keyframes drawLineEffect { from { stroke-dashoffset: 3000; } to { stroke-dashoffset: 0; } }
-        @keyframes growPieEffect { from { stroke-dasharray: 0 100; transform: rotate(-90deg) scale(0.3); opacity: 0; } to { transform: rotate(-90deg) scale(1); opacity: 1; } }
-        .draw-line-anim { stroke-dasharray: 3000; stroke-dashoffset: 3000; animation: drawLineEffect 2.5s cubic-bezier(0.4, 0, 0.2, 1) forwards; }
-        .pie-segment-anim { animation: growPieEffect 3.0s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; transform-origin: center; }
+        @keyframes growPieEffect { from { stroke-dasharray: 0 100; transform: rotate(-90deg) scale(0.85); opacity: 0; } to { transform: rotate(-90deg) scale(1); opacity: 1; } }
+        .draw-line-anim { stroke-dasharray: 3000; stroke-dashoffset: 3000; animation: drawLineEffect 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+        .pie-segment-anim { animation: growPieEffect 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: center; }
       `}</style>
 
       <div style={styles.container}>
@@ -410,7 +412,9 @@ function App() {
 
                           return (
                             <g key={idx} onMouseEnter={() => setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
-                              <circle cx={xVal} cy={yVal} r={isNodeHovered ? 7 : 4.5} fill={isNodeHovered ? '#1d4ed8' : '#2563eb'} style={{ transition: 'all 0.15s ease' }} />
+                              <circle cx={xVal} cy={yVal} r={isNodeHovered ? 7 : 4.5} fill={isNodeHovered ? '#1d4ed8' : '#2563eb'} 
+                                style={{ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} // Buttery node expand
+                              />
                               <text x={xVal} y="156" fill="#64748b" fontSize="10" textAnchor="middle" fontWeight="600">{timeLabels[idx]}</text>
                               {isNodeHovered && (
                                 <g>
@@ -475,9 +479,18 @@ function App() {
                     <div style={styles.splitLayout}>
                       <div style={{ width: '220px', height: '220px' }}>
                         <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4.2" strokeDasharray="69 100" strokeDashoffset="0" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-energy' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.2s' }} onMouseEnter={() => setHoveredIndex('pie-energy')} onMouseLeave={() => setHoveredIndex(null)} />
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#10b981" strokeWidth="4.2" strokeDasharray="24.3 100" strokeDashoffset="-69" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-chem' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.2s' }} onMouseEnter={() => setHoveredIndex('pie-chem')} onMouseLeave={() => setHoveredIndex(null)} />
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#8b5cf6" strokeWidth="4.2" strokeDasharray="6.7 100" strokeDashoffset="-93.3" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-lab' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.2s' }} onMouseEnter={() => setHoveredIndex('pie-lab')} onMouseLeave={() => setHoveredIndex(null)} />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4.2" strokeDasharray="69 100" strokeDashoffset="0" 
+                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-energy' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
+                            onMouseEnter={() => setHoveredIndex('pie-energy')} onMouseLeave={() => setHoveredIndex(null)} 
+                          />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#10b981" strokeWidth="4.2" strokeDasharray="24.3 100" strokeDashoffset="-69" 
+                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-chem' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
+                            onMouseEnter={() => setHoveredIndex('pie-chem')} onMouseLeave={() => setHoveredIndex(null)} 
+                          />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#8b5cf6" strokeWidth="4.2" strokeDasharray="6.7 100" strokeDashoffset="-93.3" 
+                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-lab' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
+                            onMouseEnter={() => setHoveredIndex('pie-lab')} onMouseLeave={() => setHoveredIndex(null)} 
+                          />
                           <circle cx="18" cy="18" r="11" fill="#ffffff" />
                           <text x="18" y="20" textAnchor="middle" fontSize="4" fontWeight="800" fill="#1e293b">100%</text>
                         </svg>
@@ -490,7 +503,7 @@ function App() {
                         ].map((item) => {
                           const isTargetActive = hoveredIndex === item.id;
                           return (
-                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '8px', backgroundColor: isTargetActive ? '#f8fafc' : 'transparent', border: isTargetActive ? '1px solid #cbd5e1' : '1px solid transparent', transition: 'all 0.2s' }}>
+                            <div key={item.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', borderRadius: '8px', backgroundColor: isTargetActive ? '#f8fafc' : 'transparent', border: isTargetActive ? '1px solid #cbd5e1' : '1px solid transparent', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                 <span style={{ width: '12px', height: '12px', backgroundColor: item.color, borderRadius: '50%', display: 'inline-block' }} />
                                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>{item.label}</span>
@@ -520,16 +533,17 @@ function App() {
           {/* ======================================================== */}
           {activeMasterTab === 'Monthly Performance' && (
             <>
-            {/* MONTHLY VIEW 1: DM WATER PRODUCTION */}
+              {/* MONTHLY VIEW 1: DM WATER PRODUCTION */}
               {activeTab === 'DM Water Production' && (
                 <div className="tab-entry-anim">
+                  {/* Calmed breathing cycles and unified cubic-bezier for liquid curves */}
                   <style>{`
-                    @keyframes tabFadeInUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-                    @keyframes themePulseGlow { 0% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } 50% { box-shadow: 0 4px 25px rgba(56, 189, 248, 0.5); } 100% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } }
+                    @keyframes tabFadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+                    @keyframes themePulseGlow { 0% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } 50% { box-shadow: 0 4px 22px rgba(56, 189, 248, 0.4); } 100% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } }
                     @keyframes themeFluidDraw { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
-                    .tab-entry-anim { animation: tabFadeInUp 0.65s cubic-bezier(0.23, 1, 0.32, 1) forwards; }
-                    .theme-heatmap-block:hover { animation: themePulseGlow 1.4s infinite ease-in-out; }
-                    .theme-spline-main { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: themeFluidDraw 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                    .tab-entry-anim { animation: tabFadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+                    .theme-heatmap-block:hover { animation: themePulseGlow 2.5s infinite ease-in-out; }
+                    .theme-spline-main { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: themeFluidDraw 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
                   `}</style>
 
                   <div style={styles.viewTitle}>Monthly Production Summary</div>
@@ -548,9 +562,7 @@ function App() {
 
                     return (
                       <>
-                        {/* ========================================== */}
-                        {/* EXECUTIVE DM PRODUCTION KPI BANNER        */}
-                        {/* ========================================== */}
+                        {/* EXECUTIVE DM PRODUCTION KPI BANNER */}
                         <div style={{ display: 'flex', gap: '20px', marginBottom: '24px' }}>
                           <div style={{ ...styles.card, flex: 1, borderLeft: '4px solid #2563eb', background: '#ffffff' }}>
                             <div style={styles.flowLabel}>Total Monthly DM Production</div>
@@ -572,9 +584,7 @@ function App() {
                           </div>
                         </div>
 
-                        {/* ========================================== */}
-                        {/* CONCEPT 2: PRODUCTION CALENDAR HEATMAP     */}
-                        {/* ========================================== */}
+                        {/* CONCEPT 2: PRODUCTION CALENDAR HEATMAP */}
                         <div style={{ ...styles.card, marginBottom: '32px' }}>
                           <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
                             DM Water Production Heatmap (Daily Demin Total Volume)
@@ -604,14 +614,13 @@ function App() {
                               const displayDay = extractDayNumber(dateStr, i);
 
                               let blockColor = '#ffe4e6'; // Shutdown state
-                              let textColor = '#e11d48';  
+                              let textColor = '#e11d48';
                               if (deminVolume > 0) {
-                                blockColor = `rgba(37, 99, 235, ${0.15 + intensity * 0.85})`; 
+                                blockColor = `rgba(37, 99, 235, ${0.15 + intensity * 0.85})`;
                                 textColor = intensity > 0.6 ? '#ffffff' : '#475569';
                               }
 
                               const isBlockHovered = hoveredIndex === `heatmap-${i}`;
-
                               return (
                                 <div
                                   key={`heat-${i}`}
@@ -630,9 +639,9 @@ function App() {
                                     alignItems: 'center',
                                     cursor: 'pointer',
                                     border: isBlockHovered ? '2px solid #38bdf8' : '1px solid rgba(0,0,0,0.05)',
-                                    transform: isBlockHovered ? 'scale(1.12) translateY(-2px)' : 'scale(1) translateY(0)',
+                                    transform: isBlockHovered ? 'scale(1.10) translateY(-2px)' : 'scale(1) translateY(0)',
                                     zIndex: isBlockHovered ? 10 : 1,
-                                    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                    transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Silky micro-spring transition
                                   }}
                                 >
                                   <span style={{ fontSize: '11px', fontWeight: '700', color: isBlockHovered ? '#2563eb' : textColor }}>
@@ -662,8 +671,8 @@ function App() {
                                     }}>
                                       <div style={{ fontWeight: '700', borderBottom: '1px solid #475569', paddingBottom: '4px', marginBottom: '6px', color: '#38bdf8' }}>{dateStr}</div>
                                       <div>⚡ Run Hours: <strong>{opHours} hrs</strong></div>
-                                      <div> Raw Clear Water: <strong>{rowVals[2]} m³</strong></div>
-                                      <div> UF Permeate: <strong>{rowVals[3]} m³</strong></div>
+                                      <div>Raw Clear Water: <strong>{rowVals[2]} m³</strong></div>
+                                      <div>UF Permeate: <strong>{rowVals[3]} m³</strong></div>
                                       <div>🏆 Demin Total: <strong>{deminVolume.toLocaleString()} m³</strong></div>
                                     </div>
                                   )}
@@ -680,9 +689,7 @@ function App() {
                           </div>
                         </div>
 
-                        {/* ========================================== */}
-                        {/* CONCEPT 1: THE WATER JOURNEY SPLINE CHART  */}
-                        {/* ========================================== */}
+                        {/* CONCEPT 1: THE WATER JOURNEY SPLINE CHART */}
                         <div style={styles.chartContainer}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div style={{ ...styles.flowLabel, margin: 0, color: '#1e293b' }}>
@@ -707,9 +714,7 @@ function App() {
                                   const v = Object.values(r);
                                   return Math.max(parseFloat(String(v[2])) || 0, parseFloat(String(v[8])) || 0);
                                 }), 100) * 1.15;
-
                                 const stepX = 920 / (cleanDataRows.length - 1 || 1);
-
                                 const generatePoints = (valIdx) => {
                                   return cleanDataRows.map((row, i) => {
                                     const val = parseFloat(String(Object.values(row)[valIdx] || '0').replace(/[^0-9.]/g, '')) || 0;
@@ -722,7 +727,6 @@ function App() {
                                 const clearWaterPoints = generatePoints(2);
                                 const ufPoints = generatePoints(3);
                                 const deminPoints = generatePoints(8);
-
                                 return (
                                   <>
                                     <text x="52" y="44" fill="#94a3b8" fontSize="10" textAnchor="end">{Math.round(absolutePeak * 0.75).toLocaleString()} m³</text>
@@ -741,7 +745,9 @@ function App() {
                                       return (
                                         <g key={`node-group-${i}`} onMouseEnter={() => setHoveredIndex(`line-node-${i}`)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
                                           {isNodeActive && <line x1={p.x} y1="40" x2={p.x} y2="205" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="2 2" />}
-                                          <circle cx={p.x} cy={p.y} r={isNodeActive ? 7.5 : 4} fill={isNodeActive ? '#38bdf8' : '#2563eb'} style={{ transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)', filter: isNodeActive ? 'drop-shadow(0 0 8px #38bdf8)' : 'none' }} />
+                                          <circle cx={p.x} cy={p.y} r={isNodeActive ? 7.5 : 4} fill={isNodeActive ? '#38bdf8' : '#2563eb'} 
+                                            style={{ transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', filter: isNodeActive ? 'drop-shadow(0 0 8px #38bdf8)' : 'none' }} 
+                                          />
 
                                           {(i % 3 === 0 || isNodeActive) && (
                                             <text x={p.x} y="224" fill={isNodeActive ? '#38bdf8' : '#64748b'} fontSize="9" textAnchor="middle" fontWeight="700" transform={`rotate(15, ${p.x}, 224)`}>
@@ -843,7 +849,7 @@ function App() {
                                     <span>{cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR <span style={{ color: '#64748b', fontWeight: '500' }}>({budgetPct.toFixed(1)}%)</span></span>
                                   </div>
                                   <div style={{ ...styles.progressBarOuter, height: '8px', backgroundColor: '#f1f5f9', marginBottom: 0 }}>
-                                    <div style={{ ...styles.progressBarInner(budgetPct, '#2563eb'), height: '100%', transition: 'width 1s cubic-bezier(0.16, 1, 0.3, 1)' }}></div>
+                                    <div style={{ ...styles.progressBarInner(budgetPct, '#2563eb'), height: '100%', transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)' }}></div>
                                   </div>
                                 </div>
                               );
@@ -869,7 +875,6 @@ function App() {
                             const stockBarPct = (item.stockKg / maxStockInSheet) * 100;
 
                             const isCardHovered = hoveredIndex === `chem-card-${idx}`;
-
                             return (
                               <div
                                 key={`chem-card-${idx}`}
@@ -884,7 +889,7 @@ function App() {
                                   cursor: 'pointer',
                                   transform: isCardHovered ? 'scale(1.04) translateY(-4px)' : 'scale(1) translateY(0)',
                                   boxShadow: isCardHovered ? '0 12px 20px -5px rgba(0,0,0,0.08)' : '0 2px 4px rgba(0,0,0,0.01)',
-                                  transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                  transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Smooth cards pop
                                   display: 'flex',
                                   flexDirection: 'column',
                                   justifyContent: 'space-between',
@@ -949,9 +954,10 @@ function App() {
               {/* MONTHLY VIEW 3: WTP ENERGY COST */}
               {activeTab === 'WTP Energy Cost' && (
                 <div className="tab-entry-anim">
+                  {/* Harmonized line animations using absolute global ease-out quint values */}
                   <style>{`
                     @keyframes energyFluidDraw { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
-                    .energy-spline-path { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: energyFluidDraw 2.2s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+                    .energy-spline-path { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: energyFluidDraw 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
                   `}</style>
 
                   <div style={styles.viewTitle}>Monthly Power Metrics & Specific Energy Index</div>
@@ -1067,7 +1073,7 @@ function App() {
                                           r={isHovered ? 7.5 : 4.5} 
                                           fill={isHovered ? '#38bdf8' : '#2563eb'} 
                                           style={{ 
-                                            transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                                            transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Smooth circle track expansion
                                             filter: isHovered ? 'drop-shadow(0 0 8px #38bdf8)' : 'none'
                                           }} 
                                         />
