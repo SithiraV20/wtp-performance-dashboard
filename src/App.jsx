@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 
 function App() {
-  // Navigation State Management (Master Tabs & Sub Tabs Hierarchy)
-  const [activeMasterTab, setActiveMasterTab] = useState('Performance Test');
-  const [activeTab, setActiveTab] = useState('Recovery Rates');
+  // Navigation State Management (Default to Monthly Performance -> DM Water Production)
+  const [activeMasterTab, setActiveMasterTab] = useState('Monthly Performance');
+  const [activeTab, setActiveTab] = useState('DM Water Production');
   
   const [csvData, setCsvData] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
@@ -192,15 +192,15 @@ function App() {
 
         {/* Master Tier 1 Module Tabs Headers */}
         <div style={styles.masterTabRow}>
-          <button style={styles.masterTabBtn(activeMasterTab === 'Performance Test')} onClick={() => switchMaster('Performance Test')}>
-            Performance Test
-          </button>
           <button style={styles.masterTabBtn(activeMasterTab === 'Monthly Performance')} onClick={() => switchMaster('Monthly Performance')}>
             Monthly Performance
           </button>
+          <button style={styles.masterTabBtn(activeMasterTab === 'Performance Test')} onClick={() => switchMaster('Performance Test')}>
+            Performance Test
+          </button>
         </div>
 
-        {/* Tier 2 Sub-Navigation Rows selector conditional switch */}
+        {/* Tier 2 Sub-Navigation Rows (Swapped Chemical Cost and WTP Energy Cost sub-tab sorting order) */}
         <div style={styles.tabRow}>
           {activeMasterTab === 'Performance Test' ? (
             ['Recovery Rates', 'Flowrates', 'Energy', 'Water Quality', 'Chemicals', 'Lab Sample', 'DM Water Cost'].map(tab => (
@@ -209,7 +209,7 @@ function App() {
               </button>
             ))
           ) : (
-            ['DM Water Production', 'Chemical Cost', 'WTP Energy Cost'].map(tab => (
+            ['DM Water Production', 'WTP Energy Cost', 'Chemical Cost'].map(tab => (
               <button key={tab} style={styles.tabBtn(activeTab === tab)} onClick={() => setActiveTab(tab)}>
                 {tab}
               </button>
@@ -381,7 +381,7 @@ function App() {
                         <tr key={i}>
                           <td style={styles.td}><strong>{cell(i, 'Time', time)}</strong></td>
                           <td style={styles.td}>{cell(i, 'Run Hours (RH)', 9935.59 + i)}</td>
-                          <td style={styles.td}>{cell(i, 'Active Power (KWHR)', '194.6')}</td>
+                          <td style style={styles.td}>{cell(i, 'Active Power (KWHR)', '194.6')}</td>
                           <td style={styles.td}>{cell(i, 'Cumulative Energy (MWHR)', '236.95')}</td>
                         </tr>
                       ))}
@@ -413,7 +413,7 @@ function App() {
                           return (
                             <g key={idx} onMouseEnter={() => setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
                               <circle cx={xVal} cy={yVal} r={isNodeHovered ? 7 : 4.5} fill={isNodeHovered ? '#1d4ed8' : '#2563eb'} 
-                                style={{ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} // Buttery node expand
+                                style={{ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }}
                               />
                               <text x={xVal} y="156" fill="#64748b" fontSize="10" textAnchor="middle" fontWeight="600">{timeLabels[idx]}</text>
                               {isNodeHovered && (
@@ -536,7 +536,6 @@ function App() {
               {/* MONTHLY VIEW 1: DM WATER PRODUCTION */}
               {activeTab === 'DM Water Production' && (
                 <div className="tab-entry-anim">
-                  {/* Calmed breathing cycles and unified cubic-bezier for liquid curves */}
                   <style>{`
                     @keyframes tabFadeInUp { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
                     @keyframes themePulseGlow { 0% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } 50% { box-shadow: 0 4px 22px rgba(56, 189, 248, 0.4); } 100% { box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15); } }
@@ -548,7 +547,6 @@ function App() {
 
                   <div style={styles.viewTitle}>Monthly Production Summary</div>
 
-                  {/* High-Fidelity Data Aggregation Processing Engine */}
                   {(() => {
                     const grossDMProduction = cleanDataRows.reduce((sum, r) => {
                       return sum + (parseFloat(String(Object.values(r)[8] || '0').replace(/[^0-9.]/g, '')) || 0);
@@ -641,7 +639,7 @@ function App() {
                                     border: isBlockHovered ? '2px solid #38bdf8' : '1px solid rgba(0,0,0,0.05)',
                                     transform: isBlockHovered ? 'scale(1.10) translateY(-2px)' : 'scale(1) translateY(0)',
                                     zIndex: isBlockHovered ? 10 : 1,
-                                    transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Silky micro-spring transition
+                                    transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
                                   }}
                                 >
                                   <span style={{ fontSize: '11px', fontWeight: '700', color: isBlockHovered ? '#2563eb' : textColor }}>
@@ -693,7 +691,7 @@ function App() {
                         <div style={styles.chartContainer}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div style={{ ...styles.flowLabel, margin: 0, color: '#1e293b' }}>
-                               Daily Water Production Trend (m³/day) 
+                               Daily Water Production Trend (m³/day)
                             </div>
                             <div style={{ display: 'flex', gap: '16px', fontSize: '12px', fontWeight: '700' }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><span style={{ width: '12px', height: '3px', backgroundColor: '#94a3b8', display: 'inline-block' }} /> Clear Water Intake</div>
@@ -777,184 +775,9 @@ function App() {
                 </div>
               )} 
 
-              {/* MONTHLY VIEW 2: CHEMICAL COST */}
-              {activeTab === 'Chemical Cost' && (
-                <div className="tab-entry-anim">
-                  <div style={styles.viewTitle}>Chemical Inventory Status & Financial Analytics</div>
-
-                  {(() => {
-                    const processedChemRows = csvData.map((row) => {
-                      if (!row) return null;
-                      const trueColumns = [];
-                      Object.keys(row).forEach(key => {
-                        if (key !== '__parsed_extra') trueColumns.push(row[key]);
-                      });
-                      if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
-                        trueColumns.push(...row.__parsed_extra);
-                      }
-
-                      const noNum = parseInt(String(trueColumns[1]).replace(/[^0-9]/g, ''), 10);
-                      if (isNaN(noNum) || noNum < 1 || noNum > 25) return null;
-                      
-                      let assignedArea = "Other Operations";
-                      if (noNum >= 1 && noNum <= 4) assignedArea = "Pre-Treatment";
-                      else if (noNum >= 5 && noNum <= 13) assignedArea = "RO Skid";
-                      else if (noNum >= 14 && noNum <= 15) assignedArea = "DM Plant";
-                      else if (noNum >= 16 && noNum <= 19) assignedArea = "Aux Boiler";
-                      else if (noNum === 20) assignedArea = "CCW";
-                      else if (noNum >= 21 && noNum <= 22) assignedArea = "HRSG";
-                      else if (noNum >= 23 && noNum <= 25) assignedArea = "Cooling Tower";
-
-                      const sanitizeMathField = (val) => {
-                        if (!val || String(val).trim() === '-' || String(val).trim() === '') return 0;
-                        return parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
-                      };
-
-                      return {
-                        area: assignedArea,
-                        no: String(noNum),
-                        name: String(trueColumns[2] || '').trim(),
-                        type: String(trueColumns[3] || 'Process Feed'),
-                        packageSize: String(trueColumns[4] || 'N/A'),
-                        stockKg: sanitizeMathField(trueColumns[5]),
-                        consumptionKg: sanitizeMathField(trueColumns[6]),
-                        unitPrice: sanitizeMathField(trueColumns[7]),
-                        totalOpex: sanitizeMathField(trueColumns[8])
-                      };
-                    }).filter(Boolean);
-
-                    const areaBudgets = processedChemRows.reduce((acc, item) => {
-                      acc[item.area] = (acc[item.area] || 0) + item.totalOpex;
-                      return acc;
-                    }, {});
-
-                    const totalMonthlyOPEX = Object.values(areaBudgets).reduce((a, b) => a + b, 0);
-                    const maxStockInSheet = Math.max(...processedChemRows.map(r => r.stockKg), 1);
-
-                    return (
-                      <>
-                        <div style={{ ...styles.card, marginBottom: '32px', background: '#ffffff' }}>
-                          <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
-                            Operational Expenditure (OPEX) Budget Allocations by Process Group
-                          </div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                            {["Pre-Treatment", "RO Skid", "DM Plant", "Aux Boiler", "CCW", "HRSG", "Cooling Tower"].map((area) => {
-                              const cost = areaBudgets[area] || 0;
-                              const budgetPct = totalMonthlyOPEX > 0 ? (cost / totalMonthlyOPEX) * 100 : 0;
-                              return (
-                                <div key={area} style={{ width: '100%' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
-                                    <span>🏭 {area}</span>
-                                    <span>{cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR <span style={{ color: '#64748b', fontWeight: '500' }}>({budgetPct.toFixed(1)}%)</span></span>
-                                  </div>
-                                  <div style={{ ...styles.progressBarOuter, height: '8px', backgroundColor: '#f1f5f9', marginBottom: 0 }}>
-                                    <div style={{ ...styles.progressBarInner(budgetPct, '#2563eb'), height: '100%', transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)' }}></div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          
-                          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Consolidated Chemical OPEX Pool</span>
-                            <span style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a' }}>{totalMonthlyOPEX.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR</span>
-                          </div>
-                        </div>
-
-                        <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
-                          Active Chemical Warehouse Balance & Reserve Levels
-                        </div>
-
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '20px' }}>
-                          {processedChemRows.map((item, idx) => {
-                            const isStockCritical = item.stockKg < 500;
-                            const cardBorderColor = isStockCritical ? '#f43f5e' : 'rgba(0,0,0,0.05)';
-                            const systemBadgeColor = isStockCritical ? '#ffe4e6' : '#eff6ff';
-                            const systemBadgeText = isStockCritical ? '#e11d48' : '#2563eb';
-                            const stockBarPct = (item.stockKg / maxStockInSheet) * 100;
-
-                            const isCardHovered = hoveredIndex === `chem-card-${idx}`;
-                            return (
-                              <div
-                                key={`chem-card-${idx}`}
-                                className="theme-heatmap-block"
-                                onMouseEnter={() => setHoveredIndex(`chem-card-${idx}`)}
-                                onMouseLeave={() => setHoveredIndex(null)}
-                                style={{
-                                  backgroundColor: '#ffffff',
-                                  borderRadius: '12px',
-                                  border: isCardHovered ? '2px solid #38bdf8' : `1px solid ${cardBorderColor}`,
-                                  padding: '20px',
-                                  cursor: 'pointer',
-                                  transform: isCardHovered ? 'scale(1.04) translateY(-4px)' : 'scale(1) translateY(0)',
-                                  boxShadow: isCardHovered ? '0 12px 20px -5px rgba(0,0,0,0.08)' : '0 2px 4px rgba(0,0,0,0.01)',
-                                  transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Smooth cards pop
-                                  display: 'flex',
-                                  flexDirection: 'column',
-                                  justifyContent: 'space-between',
-                                  position: 'relative'
-                                }}
-                              >
-                                <div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
-                                    <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', margin: 0, lineHeight: '1.3' }}>
-                                      {item.no}. {item.name}
-                                    </h4>
-                                    <span style={{ fontSize: '9px', fontWeight: '700', padding: '4px 8px', borderRadius: '6px', backgroundColor: systemBadgeColor, color: systemBadgeText, whiteSpace: 'nowrap', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
-                                      {isStockCritical ? '⚠️ LOW STOCK' : item.type}
-                                    </span>
-                                  </div>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '16px' }}>
-                                    <span>📍 {item.area}</span>
-                                    <span style={{ color: '#64748b' }}>Pack: {item.packageSize} kg</span>
-                                  </div>
-                                </div>
-
-                                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
-                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                                    <div>
-                                      <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Available Stock</div>
-                                      <div style={{ fontSize: '18px', fontWeight: '800', color: isStockCritical ? '#e11d48' : '#0f172a' }}>
-                                        {item.stockKg.toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>kg</span>
-                                      </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                      <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>May Usage</div>
-                                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#334155' }}>
-                                        {item.consumptionKg > 0 ? `${item.consumptionKg.toLocaleString()} kg` : '0 kg'}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <div style={{ ...styles.progressBarOuter, height: '6px', backgroundColor: '#e2e8f0', marginBottom: 0 }}>
-                                    <div style={{ ...styles.progressBarInner(stockBarPct, isStockCritical ? '#e11d48' : '#10b981'), height: '100%' }}></div>
-                                  </div>
-                                </div>
-
-                                <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
-                                  <div>
-                                    <span style={{ color: '#94a3b8', fontWeight: '500' }}>Rate: </span>
-                                    <strong style={{ color: '#475569' }}>{item.unitPrice > 0 ? `${item.unitPrice.toLocaleString()} LKR` : 'N/A'}</strong>
-                                  </div>
-                                  <div style={{ textAlign: 'right' }}>
-                                    <span style={{ color: '#94a3b8', fontWeight: '500' }}>Cost: </span>
-                                    <strong style={{ color: '#2563eb' }}>{item.totalOpex > 0 ? `${item.totalOpex.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : '0.00 LKR'}</strong>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
-
-              {/* MONTHLY VIEW 3: WTP ENERGY COST */}
+              {/* MONTHLY VIEW 2: WTP ENERGY COST (Moved to position 2) */}
               {activeTab === 'WTP Energy Cost' && (
                 <div className="tab-entry-anim">
-                  {/* Harmonized line animations using absolute global ease-out quint values */}
                   <style>{`
                     @keyframes energyFluidDraw { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
                     .energy-spline-path { stroke-dasharray: 2000; stroke-dashoffset: 2000; animation: energyFluidDraw 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
@@ -1073,7 +896,7 @@ function App() {
                                           r={isHovered ? 7.5 : 4.5} 
                                           fill={isHovered ? '#38bdf8' : '#2563eb'} 
                                           style={{ 
-                                            transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', // Smooth circle track expansion
+                                            transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
                                             filter: isHovered ? 'drop-shadow(0 0 8px #38bdf8)' : 'none'
                                           }} 
                                         />
@@ -1128,6 +951,180 @@ function App() {
                               ))}
                             </tbody>
                           </table>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+
+              {/* MONTHLY VIEW 3: CHEMICAL COST (Moved to position 3) */}
+              {activeTab === 'Chemical Cost' && (
+                <div className="tab-entry-anim">
+                  <div style={styles.viewTitle}>Chemical Inventory Status & Financial Analytics</div>
+
+                  {(() => {
+                    const processedChemRows = csvData.map((row) => {
+                      if (!row) return null;
+                      const trueColumns = [];
+                      Object.keys(row).forEach(key => {
+                        if (key !== '__parsed_extra') trueColumns.push(row[key]);
+                      });
+                      if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
+                        trueColumns.push(...row.__parsed_extra);
+                      }
+
+                      const noNum = parseInt(String(trueColumns[1]).replace(/[^0-9]/g, ''), 10);
+                      if (isNaN(noNum) || noNum < 1 || noNum > 25) return null;
+                      
+                      let assignedArea = "Other Operations";
+                      if (noNum >= 1 && noNum <= 4) assignedArea = "Pre-Treatment";
+                      else if (noNum >= 5 && noNum <= 13) assignedArea = "RO Skid";
+                      else if (noNum >= 14 && noNum <= 15) assignedArea = "DM Plant";
+                      else if (noNum >= 16 && noNum <= 19) assignedArea = "Aux Boiler";
+                      else if (noNum === 20) assignedArea = "CCW";
+                      else if (noNum >= 21 && noNum <= 22) assignedArea = "HRSG";
+                      else if (noNum >= 23 && noNum <= 25) assignedArea = "Cooling Tower";
+
+                      const sanitizeMathField = (val) => {
+                        if (!val || String(val).trim() === '-' || String(val).trim() === '') return 0;
+                        return parseFloat(String(val).replace(/[^0-9.]/g, '')) || 0;
+                      };
+
+                      return {
+                        area: assignedArea,
+                        no: String(noNum),
+                        name: String(trueColumns[2] || '').trim(),
+                        type: String(trueColumns[3] || 'Process Feed'),
+                        packageSize: String(trueColumns[4] || 'N/A'),
+                        stockKg: sanitizeMathField(trueColumns[5]),
+                        consumptionKg: sanitizeMathField(trueColumns[6]),
+                        unitPrice: sanitizeMathField(trueColumns[7]),
+                        totalOpex: sanitizeMathField(trueColumns[8])
+                      };
+                    }).filter(Boolean);
+
+                    const areaBudgets = processedChemRows.reduce((acc, item) => {
+                      acc[item.area] = (acc[item.area] || 0) + item.totalOpex;
+                      return acc;
+                    }, {});
+
+                    const totalMonthlyOPEX = Object.values(areaBudgets).reduce((a, b) => a + b, 0);
+                    const maxStockInSheet = Math.max(...processedChemRows.map(r => r.stockKg), 1);
+
+                    return (
+                      <>
+                        <div style={{ ...styles.card, marginBottom: '32px', background: '#ffffff' }}>
+                          <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
+                            Operational Expenditure (OPEX) Budget Allocations by Process Group
+                          </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                            {["Pre-Treatment", "RO Skid", "DM Plant", "Aux Boiler", "CCW", "HRSG", "Cooling Tower"].map((area) => {
+                              const cost = areaBudgets[area] || 0;
+                              const budgetPct = totalMonthlyOPEX > 0 ? (cost / totalMonthlyOPEX) * 100 : 0;
+                              return (
+                                <div key={area} style={{ width: '100%' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', fontWeight: '700', color: '#334155', marginBottom: '6px' }}>
+                                    <span>🏭 {area}</span>
+                                    <span>{cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR <span style={{ color: '#64748b', fontWeight: '500' }}>({budgetPct.toFixed(1)}%)</span></span>
+                                  </div>
+                                  <div style={{ ...styles.progressBarOuter, height: '8px', backgroundColor: '#f1f5f9', marginBottom: 0 }}>
+                                    <div style={{ ...styles.progressBarInner(budgetPct, '#2563eb'), height: '100%', transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)' }}></div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                          
+                          <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '24px', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase' }}>Consolidated Chemical OPEX Pool</span>
+                            <span style={{ fontSize: '22px', fontWeight: '800', color: '#0f172a' }}>{totalMonthlyOPEX.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR</span>
+                          </div>
+                        </div>
+
+                        <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
+                          Active Chemical Warehouse Balance & Reserve Levels
+                        </div>
+
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(290px, 1fr))', gap: '20px' }}>
+                          {processedChemRows.map((item, idx) => {
+                            const isStockCritical = item.stockKg < 500;
+                            const cardBorderColor = isStockCritical ? '#f43f5e' : 'rgba(0,0,0,0.05)';
+                            const systemBadgeColor = isStockCritical ? '#ffe4e6' : '#eff6ff';
+                            const systemBadgeText = isStockCritical ? '#e11d48' : '#2563eb';
+                            const stockBarPct = (item.stockKg / maxStockInSheet) * 100;
+
+                            const isCardHovered = hoveredIndex === `chem-card-${idx}`;
+                            return (
+                              <div
+                                key={`chem-card-${idx}`}
+                                className="theme-heatmap-block"
+                                onMouseEnter={() => setHoveredIndex(`chem-card-${idx}`)}
+                                onMouseLeave={() => setHoveredIndex(null)}
+                                style={{
+                                  backgroundColor: '#ffffff',
+                                  borderRadius: '12px',
+                                  border: isCardHovered ? '2px solid #38bdf8' : `1px solid ${cardBorderColor}`,
+                                  padding: '20px',
+                                  cursor: 'pointer',
+                                  transform: isCardHovered ? 'scale(1.04) translateY(-4px)' : 'scale(1) translateY(0)',
+                                  boxShadow: isCardHovered ? '0 12px 20px -5px rgba(0,0,0,0.08)' : '0 2px 4px rgba(0,0,0,0.01)',
+                                  transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'space-between',
+                                  position: 'relative'
+                                }}
+                              >
+                                <div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                                    <h4 style={{ fontSize: '15px', fontWeight: '800', color: '#1e293b', margin: 0, lineHeight: '1.3' }}>
+                                      {item.no}. {item.name}
+                                    </h4>
+                                    <span style={{ fontSize: '9px', fontWeight: '700', padding: '4px 8px', borderRadius: '6px', backgroundColor: systemBadgeColor, color: systemBadgeText, whiteSpace: 'nowrap', letterSpacing: '0.02em', textTransform: 'uppercase' }}>
+                                      {isStockCritical ? '⚠️ LOW STOCK' : item.type}
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase', marginBottom: '16px' }}>
+                                    <span>📍 {item.area}</span>
+                                    <span style={{ color: '#64748b' }}>Pack: {item.packageSize} kg</span>
+                                  </div>
+                                </div>
+
+                                <div style={{ backgroundColor: '#f8fafc', padding: '12px', borderRadius: '8px', marginBottom: '16px' }}>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                                    <div>
+                                      <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>Available Stock</div>
+                                      <div style={{ fontSize: '18px', fontWeight: '800', color: isStockCritical ? '#e11d48' : '#0f172a' }}>
+                                        {item.stockKg.toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>kg</span>
+                                      </div>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                      <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>May Usage</div>
+                                      <div style={{ fontSize: '18px', fontWeight: '800', color: '#334155' }}>
+                                        {item.consumptionKg > 0 ? `${item.consumptionKg.toLocaleString()} kg` : '0 kg'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <div style={{ ...styles.progressBarOuter, height: '6px', backgroundColor: '#e2e8f0', marginBottom: 0 }}>
+                                    <div style={{ ...styles.progressBarInner(stockBarPct, isStockCritical ? '#e11d48' : '#10b981'), height: '100%' }}></div>
+                                  </div>
+                                </div>
+
+                                <div style={{ borderTop: '1px dashed #e2e8f0', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                                  <div>
+                                    <span style={{ color: '#94a3b8', fontWeight: '500' }}>Rate: </span>
+                                    <strong style={{ color: '#475569' }}>{item.unitPrice > 0 ? `${item.unitPrice.toLocaleString()} LKR` : 'N/A'}</strong>
+                                  </div>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <span style={{ color: '#94a3b8', fontWeight: '500' }}>Cost: </span>
+                                    <strong style={{ color: '#2563eb' }}>{item.totalOpex > 0 ? `${item.totalOpex.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : '0.00 LKR'}</strong>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
                         </div>
                       </>
                     );
