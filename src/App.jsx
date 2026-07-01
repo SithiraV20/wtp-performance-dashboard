@@ -9,6 +9,9 @@ function App() {
   const [csvData, setCsvData] = useState([]);
   const [hoveredIndex, setHoveredIndex] = useState(null);
   
+  // Dynamic state to hold the Performance Test Date fetched from sheet parameters
+  const [performanceTestDate, setPerformanceTestDate] = useState('Loading...');
+  
   // Fully Consolidated Routing Map (Phase 1 & Phase 2 URLs)
   const LINKS = {
     // Tier 1: Performance Test Logs Links
@@ -36,13 +39,39 @@ function App() {
     }
   };
 
-  useEffect(() => {
+useEffect(() => {
     if (LINKS[activeTab]) {
       setCsvData([]); // Flushing local matrix to clear cross-tab animations cleanly
       fetch(LINKS[activeTab])
         .then(res => res.text())
         .then(text => {
-          Papa.parse(text, { header: true, skipEmptyLines: true, complete: (res) => setCsvData(res.data) });
+          Papa.parse(text, { 
+            header: true, 
+            skipEmptyLines: true, 
+            complete: (res) => {
+              setCsvData(res.data);
+              
+              // Safe Target Interceptor for Column I (Test Date)
+              if (activeTab === 'Recovery Rates' && res.data && res.data[0]) {
+                const firstRow = res.data[0];
+                
+                // 1. Try to find the key matching "Test date" dynamically
+                const keys = Object.keys(firstRow);
+                const dateKey = keys.find(k => k.toLowerCase().includes('test date'));
+                let sheetDate = dateKey ? firstRow[dateKey] : null;
+                
+                // 2. Fallback to strict physical position tracking (Column I is Index 8)
+                if (!sheetDate && res.meta && res.meta.fields) {
+                  const physicalKey = res.meta.fields[8]; // Index 8 = Column I
+                  sheetDate = firstRow[physicalKey];
+                }
+                
+                if (sheetDate && String(sheetDate).trim() !== '') {
+                  setPerformanceTestDate(String(sheetDate).trim());
+                }
+              }
+            } 
+          });
         })
         .catch(err => console.error("Error streaming ledger parameters: ", err));
     }
@@ -184,8 +213,11 @@ function App() {
             <h1 style={styles.plantTitle}>Sobadhanavi 350MW CCPP</h1>
             <p style={styles.plantSub}>Water Treatment Plant - Performance Test Dashboard</p>
           </div>
+          {/* Conditional Meta Box rendering logic based on active top-tier grouping */}
           <div style={styles.metaBox}>
-            <div>Test Date: <strong>Feb 13, 2026</strong></div>
+            {activeMasterTab === 'Performance Test' && (
+              <div>Test Date: <strong>{performanceTestDate}</strong></div>
+            )}
             <div>Ref: <strong>SOBA-O&M-PPT-WTP-001</strong></div>
           </div>
         </div>
@@ -200,7 +232,7 @@ function App() {
           </button>
         </div>
 
-        {/* Tier 2 Sub-Navigation Rows (Swapped Chemical Cost and WTP Energy Cost sub-tab sorting order) */}
+        {/* Tier 2 Sub-Navigation Rows selector conditional switch */}
         <div style={styles.tabRow}>
           {activeMasterTab === 'Performance Test' ? (
             ['Recovery Rates', 'Flowrates', 'Energy', 'Water Quality', 'Chemicals', 'Lab Sample', 'DM Water Cost'].map(tab => (
@@ -381,7 +413,7 @@ function App() {
                         <tr key={i}>
                           <td style={styles.td}><strong>{cell(i, 'Time', time)}</strong></td>
                           <td style={styles.td}>{cell(i, 'Run Hours (RH)', 9935.59 + i)}</td>
-                          <td style style={styles.td}>{cell(i, 'Active Power (KWHR)', '194.6')}</td>
+                          <td style={styles.td}>{cell(i, 'Active Power (KWHR)', '194.6')}</td>
                           <td style={styles.td}>{cell(i, 'Cumulative Energy (MWHR)', '236.95')}</td>
                         </tr>
                       ))}
@@ -775,7 +807,7 @@ function App() {
                 </div>
               )} 
 
-              {/* MONTHLY VIEW 2: WTP ENERGY COST (Moved to position 2) */}
+              {/* MONTHLY VIEW 2: WTP ENERGY COST */}
               {activeTab === 'WTP Energy Cost' && (
                 <div className="tab-entry-anim">
                   <style>{`
@@ -958,7 +990,7 @@ function App() {
                 </div>
               )}
 
-              {/* MONTHLY VIEW 3: CHEMICAL COST (Moved to position 3) */}
+              {/* MONTHLY VIEW 3: CHEMICAL COST */}
               {activeTab === 'Chemical Cost' && (
                 <div className="tab-entry-anim">
                   <div style={styles.viewTitle}>Chemical Inventory Status & Financial Analytics</div>
