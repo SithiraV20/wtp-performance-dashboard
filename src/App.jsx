@@ -11,6 +11,20 @@ function App() {
   
   // Dynamic state to hold the Performance Test Date fetched from sheet parameters
   const [performanceTestDate, setPerformanceTestDate] = useState('Loading...');
+
+  // Configuration States parsed from the Google Sheet metadata fields
+  const [equipmentFactor, setEquipmentFactor] = useState(0.04);       // Default 4%
+  const [consumableFactor, setConsumableFactor] = useState(0.02);        // Default 2%
+  const [electricityTariff, setElectricityTariff] = useState(21);       // Default 21 LKR/kWh
+
+  // Simulation parameters for the "What-if" Live Scenarios
+  const [simEq, setSimEq] = useState(0.04);
+  const [simCons, setSimCons] = useState(0.02);
+
+  // States to hold concurrently loaded data for the Cross-Tab Cost Engine
+  const [productionRows, setProductionRows] = useState([]);
+  const [energyRows, setEnergyRows] = useState([]);
+  const [chemicalRows, setChemicalRows] = useState([]);
   
   // Fully Consolidated Routing Map (Phase 1 & Phase 2 URLs)
   const LINKS = {
@@ -29,6 +43,63 @@ function App() {
     'WTP Energy Cost': 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSve3TGoAt4cBMLzvfCu5u5YWl57WENTY4s6R96RqBIFGv278WIk3Wx9vo92qV8e4wBZ-92txgKaafn/pub?gid=677778686&single=true&output=csv'
   };
 
+  // Sync simulation values with active parameters loaded dynamically from the sheet
+  useEffect(() => { setSimEq(equipmentFactor); }, [equipmentFactor]);
+  useEffect(() => { setSimCons(consumableFactor); }, [consumableFactor]);
+
+  // Pre-fetch all Monthly Performance datasets concurrently to power the consolidated unit math model
+  useEffect(() => {
+    const prefetchMonthlyLedgers = async () => {
+      try {
+        const [prodRes, energyRes, chemRes] = await Promise.all([
+          fetch(LINKS['DM Water Production']).then(r => r.text()),
+          fetch(LINKS['WTP Energy Cost']).then(r => r.text()),
+          fetch(LINKS['Chemical Cost']).then(r => r.text())
+        ]);
+
+        Papa.parse(prodRes, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => {
+            setProductionRows(res.data);
+            // Intercepting specific configuration meta rows at the bottom of the data stream
+            res.data.forEach(row => {
+              const firstVal = String(Object.values(row)[0] || '').toLowerCase();
+              if (firstVal.includes('equipment wear factor')) {
+                const val = parseFloat(String(Object.values(row)[1]).replace(/[^0-9.]/g, ''));
+                if (!isNaN(val)) setEquipmentFactor(val);
+              }
+              if (firstVal.includes('consumable factor')) {
+                const val = parseFloat(String(Object.values(row)[1]).replace(/[^0-9.]/g, ''));
+                if (!isNaN(val)) setConsumableFactor(val);
+              }
+              if (firstVal.includes('electricity tariff')) {
+                const val = parseFloat(String(Object.values(row)[1]).replace(/[^0-9.]/g, ''));
+                if (!isNaN(val)) setElectricityTariff(val);
+              }
+            });
+          }
+        });
+
+        Papa.parse(energyRes, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => setEnergyRows(res.data)
+        });
+
+        Papa.parse(chemRes, {
+          header: true,
+          skipEmptyLines: true,
+          complete: (res) => setChemicalRows(res.data)
+        });
+
+      } catch (err) {
+        console.error("Critical error building asset metric registers: ", err);
+      }
+    };
+    prefetchMonthlyLedgers();
+  }, []);
+
   // Automated layout reset coordinator when jumping between master structures
   const switchMaster = (targetMaster) => {
     setActiveMasterTab(targetMaster);
@@ -39,7 +110,7 @@ function App() {
     }
   };
 
-useEffect(() => {
+  useEffect(() => {
     if (LINKS[activeTab]) {
       setCsvData([]); // Flushing local matrix to clear cross-tab animations cleanly
       fetch(LINKS[activeTab])
@@ -54,13 +125,10 @@ useEffect(() => {
               // Safe Target Interceptor for Column I (Test Date)
               if (activeTab === 'Recovery Rates' && res.data && res.data[0]) {
                 const firstRow = res.data[0];
-                
-                // 1. Try to find the key matching "Test date" dynamically
                 const keys = Object.keys(firstRow);
                 const dateKey = keys.find(k => k.toLowerCase().includes('test date'));
                 let sheetDate = dateKey ? firstRow[dateKey] : null;
                 
-                // 2. Fallback to strict physical position tracking (Column I is Index 8)
                 if (!sheetDate && res.meta && res.meta.fields) {
                   const physicalKey = res.meta.fields[8]; // Index 8 = Column I
                   sheetDate = firstRow[physicalKey];
@@ -122,15 +190,14 @@ useEffect(() => {
       padding: '18px 4px', border: 'none', background: 'transparent',
       color: isActive ? '#ffffff' : '#94a3b8', fontWeight: '700', fontSize: '14px', cursor: 'pointer',
       borderBottom: isActive ? '3px solid #3b82f6' : '3px solid transparent', 
-      transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)', // Buttery tab fade
-      letterSpacing: '0.04em', textTransform: 'uppercase'
+      transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)', letterSpacing: '0.04em', textTransform: 'uppercase'
     }),
     tabRow: { display: 'flex', gap: '4px', backgroundColor: '#f1f5f9', padding: '12px 24px 0 24px', borderBottom: '1px solid #cbd5e1', overflowX: 'auto' },
     tabBtn: (isActive) => ({
       padding: '14px 22px', border: 'none', background: isActive ? '#ffffff' : 'transparent',
       color: isActive ? '#2563eb' : '#64748b', fontWeight: '600', fontSize: '14px', cursor: 'pointer',
       borderRadius: '8px 8px 0 0', borderTop: isActive ? '3px solid #2563eb' : '3px solid transparent', 
-      whiteSpace: 'nowrap', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' // Buttery sub-tab shift
+      whiteSpace: 'nowrap', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)'
     }),
     contentArea: { padding: '32px' },
     viewTitle: { fontSize: '20px', fontWeight: '700', color: '#0f172a', marginBottom: '24px' },
@@ -181,19 +248,67 @@ useEffect(() => {
     
     // Drop metadata, signature headers, averages, and summary total rows
     const isMetaOrSummary = values.some(v => 
-      v.includes('report') || 
-      v.includes('prepared') || 
-      v.includes('designation') || 
-      v.includes('total') || 
-      v.includes('summary') || 
-      v.includes('average') ||
-      v.includes('grand total')
+      v.includes('report') || v.includes('prepared') || v.includes('designation') || 
+      v.includes('total') || v.includes('summary') || v.includes('average') || v.includes('grand total')
     );
     
     const firstKey = Object.keys(r)[0];
     const val = r[firstKey];
     return val && typeof val === 'string' && val.trim() !== '' && !isMetaOrSummary;
   });
+
+  // =========================================================================
+  // MATRIC DATA AGGREGATION ENGINE FOR CROSS-TAB METRICS
+  // =========================================================================
+  const aggProductionRows = productionRows.filter((r) => {
+    if (!r) return false;
+    const values = Object.values(r).map(v => String(v).toLowerCase());
+    const isMetaOrSummary = values.some(v => v.includes('report') || v.includes('prepared') || v.includes('designation') || v.includes('total') || v.includes('summary') || v.includes('average') || v.includes('grand total'));
+    const firstKey = Object.keys(r)[0];
+    const val = r[firstKey];
+    return val && typeof val === 'string' && val.trim() !== '' && !isMetaOrSummary;
+  });
+
+  const aggregateDMVolume = aggProductionRows.reduce((sum, r) => sum + (parseFloat(String(Object.values(r)[8] || '0').replace(/[^0-9.]/g, '')) || 0), 0);
+  
+  const parsedEnergyData = energyRows.map((row) => {
+    if (!row) return null;
+    const rowVals = Object.values(row);
+    const dateStr = String(rowVals[0] || '').trim();
+    if (dateStr.toLowerCase() === 'date' || dateStr === '' || dateStr.toLowerCase().includes('total')) return null;
+    return { dailyKwh: parseFloat(String(rowVals[2] || '0').replace(/[^0-9.]/g, '')) || 0 };
+  }).filter(Boolean);
+
+  const aggregateKwh = parsedEnergyData.reduce((sum, r) => sum + r.dailyKwh, 0);
+  const aggregateEnergyCostPool = aggregateKwh * electricityTariff; // Dynamic Tariff Rate loaded from Sheet
+
+  const parsedChemData = chemicalRows.map((row) => {
+    if (!row) return null;
+    const trueColumns = [];
+    Object.keys(row).forEach(key => { if (key !== '__parsed_extra') trueColumns.push(row[key]); });
+    if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) trueColumns.push(...row.__parsed_extra);
+    const noNum = parseInt(String(trueColumns[1]).replace(/[^0-9]/g, ''), 10);
+    if (isNaN(noNum) || noNum < 1 || noNum > 25) return null;
+    const sanitizeMath = (v) => (!v || String(v).trim() === '-' || String(v).trim() === '') ? 0 : (parseFloat(String(v).replace(/[^0-9.]/g, '')) || 0);
+    return { totalOpex: sanitizeMath(trueColumns[8]) };
+  }).filter(Boolean);
+
+  const aggregateChemicalCostPool = parsedChemData.reduce((sum, r) => sum + r.totalOpex, 0);
+
+  // Core Math Engine Formulas to separate cost allocations per cubic meter
+  const unitEnergyCost = aggregateDMVolume > 0 ? (aggregateEnergyCostPool / aggregateDMVolume) : 0;
+  const unitChemicalCost = aggregateDMVolume > 0 ? (aggregateChemicalCostPool / aggregateDMVolume) : 0;
+
+  const costDenominator = 1 - simEq - simCons;
+  const unitTotalCost = costDenominator > 0 ? (unitEnergyCost + unitChemicalCost) / costDenominator : 0;
+  const unitWearCost = unitTotalCost * simEq;
+  const unitConsumableCost = unitTotalCost * simCons;
+
+  // Percentages chart parameters
+  const pctEnergy = unitTotalCost > 0 ? (unitEnergyCost / unitTotalCost) * 100 : 0;
+  const pctChem = unitTotalCost > 0 ? (unitChemicalCost / unitTotalCost) * 100 : 0;
+  const pctWear = unitTotalCost > 0 ? (unitWearCost / unitTotalCost) * 100 : 0;
+  const pctCons = unitTotalCost > 0 ? (unitConsumableCost / unitTotalCost) * 100 : 0;
 
   return (
     <div style={styles.wrapper}>
@@ -203,6 +318,8 @@ useEffect(() => {
         @keyframes growPieEffect { from { stroke-dasharray: 0 100; transform: rotate(-90deg) scale(0.85); opacity: 0; } to { transform: rotate(-90deg) scale(1); opacity: 1; } }
         .draw-line-anim { stroke-dasharray: 3000; stroke-dashoffset: 3000; animation: drawLineEffect 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
         .pie-segment-anim { animation: growPieEffect 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: center; }
+        @keyframes costRingFill { from { stroke-dasharray: 0 315; } }
+        .cost-gauge-ring { animation: costRingFill 1.8s cubic-bezier(0.22, 1, 0.36, 1) forwards; transform-origin: center; transform: rotate(-90deg); }
       `}</style>
 
       <div style={styles.container}>
@@ -213,7 +330,6 @@ useEffect(() => {
             <h1 style={styles.plantTitle}>Sobadhanavi 350MW CCPP</h1>
             <p style={styles.plantSub}>Water Treatment Plant - Performance Test Dashboard</p>
           </div>
-          {/* Conditional Meta Box rendering logic based on active top-tier grouping */}
           <div style={styles.metaBox}>
             {activeMasterTab === 'Performance Test' && (
               <div>Test Date: <strong>{performanceTestDate}</strong></div>
@@ -241,7 +357,7 @@ useEffect(() => {
               </button>
             ))
           ) : (
-            ['DM Water Production', 'WTP Energy Cost', 'Chemical Cost'].map(tab => (
+            ['DM Water Production', 'Unit Production Cost', 'WTP Energy Cost', 'Chemical Cost'].map(tab => (
               <button key={tab} style={styles.tabBtn(activeTab === tab)} onClick={() => setActiveTab(tab)}>
                 {tab}
               </button>
@@ -403,7 +519,7 @@ useEffect(() => {
                   <div style={styles.viewTitle}>Energy Consumption Log</div>
                   <div style={styles.energyHero}>
                     <div><div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '600' }}>Average Active Power</div><div style={{ fontSize: '32px', fontWeight: '800', color: '#fbbf24', marginTop: '4px' }}>{cell(7, 'Active Power (KWHR)', '192.6')} <span style={{ fontSize: '18px', color: '#ffffff' }}>kW</span></div></div>
-                    <div style={{ textAlign: 'right' }}><div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '600' }}>Guaranteed Limit</div><div style={{ fontSize: '20px', fontWeight: '700', marginTop: '8px' }}>&lt; 286 kW</div></div>
+                    <div style={{ textAnchor: 'right' }}><div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#94a3b8', fontWeight: '600' }}>Guaranteed Limit</div><div style={{ fontSize: '20px', fontWeight: '700', marginTop: '8px' }}>&lt; 286 kW</div></div>
                   </div>
 
                   <div style={styles.card}><table style={styles.table}>
@@ -444,9 +560,7 @@ useEffect(() => {
 
                           return (
                             <g key={idx} onMouseEnter={() => setHoveredIndex(idx)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
-                              <circle cx={xVal} cy={yVal} r={isNodeHovered ? 7 : 4.5} fill={isNodeHovered ? '#1d4ed8' : '#2563eb'} 
-                                style={{ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }}
-                              />
+                              <circle cx={xVal} cy={yVal} r={isNodeHovered ? 7 : 4.5} fill={isNodeHovered ? '#1d4ed8' : '#2563eb'} style={{ transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} />
                               <text x={xVal} y="156" fill="#64748b" fontSize="10" textAnchor="middle" fontWeight="600">{timeLabels[idx]}</text>
                               {isNodeHovered && (
                                 <g>
@@ -483,7 +597,7 @@ useEffect(() => {
                         </tr>
                       ))}
                       <tr style={{ backgroundColor: '#f8fafc' }}>
-                        <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: '700', color: '#64748b' }}>TOTAL LAB COST</td>
+                        <td colSpan="3" style={{ ...styles.td, textAnchor: 'right', fontWeight: '700', color: '#64748b' }}>TOTAL LAB COST</td>
                         <td style={{ ...styles.td, fontSize: '16px', fontWeight: '800', color: '#0f172a' }}>{cell(3, 'Total Cost (LKR)', '2,362.16')} LKR</td>
                       </tr>
                     </tbody>
@@ -511,18 +625,9 @@ useEffect(() => {
                     <div style={styles.splitLayout}>
                       <div style={{ width: '220px', height: '220px' }}>
                         <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%' }}>
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4.2" strokeDasharray="69 100" strokeDashoffset="0" 
-                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-energy' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
-                            onMouseEnter={() => setHoveredIndex('pie-energy')} onMouseLeave={() => setHoveredIndex(null)} 
-                          />
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#10b981" strokeWidth="4.2" strokeDasharray="24.3 100" strokeDashoffset="-69" 
-                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-chem' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
-                            onMouseEnter={() => setHoveredIndex('pie-chem')} onMouseLeave={() => setHoveredIndex(null)} 
-                          />
-                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#8b5cf6" strokeWidth="4.2" strokeDasharray="6.7 100" strokeDashoffset="-93.3" 
-                            style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-lab' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} 
-                            onMouseEnter={() => setHoveredIndex('pie-lab')} onMouseLeave={() => setHoveredIndex(null)} 
-                          />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#3b82f6" strokeWidth="4.2" strokeDasharray="69 100" strokeDashoffset="0" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-energy' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} onMouseEnter={() => setHoveredIndex('pie-energy')} onMouseLeave={() => setHoveredIndex(null)} />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#10b981" strokeWidth="4.2" strokeDasharray="24.3 100" strokeDashoffset="-69" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-chem' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} onMouseEnter={() => setHoveredIndex('pie-chem')} onMouseLeave={() => setHoveredIndex(null)} />
+                          <circle className="pie-segment-anim" cx="18" cy="18" r="15.915" fill="none" stroke="#8b5cf6" strokeWidth="4.2" strokeDasharray="6.7 100" strokeDashoffset="-93.3" style={{ cursor: 'pointer', filter: hoveredIndex === 'pie-lab' ? 'drop-shadow(0 4px 6px rgba(0,0,0,0.15))' : 'none', transition: 'all 0.4s cubic-bezier(0.22, 1, 0.36, 1)' }} onMouseEnter={() => setHoveredIndex('pie-lab')} onMouseLeave={() => setHoveredIndex(null)} />
                           <circle cx="18" cy="18" r="11" fill="#ffffff" />
                           <text x="18" y="20" textAnchor="middle" fontSize="4" fontWeight="800" fill="#1e293b">100%</text>
                         </svg>
@@ -540,7 +645,7 @@ useEffect(() => {
                                 <span style={{ width: '12px', height: '12px', backgroundColor: item.color, borderRadius: '50%', display: 'inline-block' }} />
                                 <span style={{ fontSize: '13px', fontWeight: '600', color: '#334155' }}>{item.label}</span>
                               </div>
-                              <div style={{ textAlign: 'right' }}>
+                              <div style={{ textAnchor: 'right' }}>
                                 <span style={{ fontSize: '13px', fontWeight: '700', color: '#0f172a', marginRight: '12px' }}>{item.val} LKR</span>
                                 <span style={{ fontSize: '12px', fontWeight: '600', color: '#64748b' }}>{item.percent}</span>
                               </div>
@@ -614,7 +719,7 @@ useEffect(() => {
                           </div>
                         </div>
 
-                        {/* CONCEPT 2: PRODUCTION CALENDAR HEATMAP */}
+                        {/* PRODUCTION CALENDAR HEATMAP */}
                         <div style={{ ...styles.card, marginBottom: '32px' }}>
                           <div style={{ ...styles.flowLabel, marginBottom: '16px', color: '#1e293b' }}>
                             DM Water Production Heatmap (Daily Demin Total Volume)
@@ -719,7 +824,7 @@ useEffect(() => {
                           </div>
                         </div>
 
-                        {/* CONCEPT 1: THE WATER JOURNEY SPLINE CHART */}
+                        {/* WATER JOURNEY SPLINE CHART */}
                         <div style={styles.chartContainer}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                             <div style={{ ...styles.flowLabel, margin: 0, color: '#1e293b' }}>
@@ -775,9 +880,7 @@ useEffect(() => {
                                       return (
                                         <g key={`node-group-${i}`} onMouseEnter={() => setHoveredIndex(`line-node-${i}`)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
                                           {isNodeActive && <line x1={p.x} y1="40" x2={p.x} y2="205" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="2 2" />}
-                                          <circle cx={p.x} cy={p.y} r={isNodeActive ? 7.5 : 4} fill={isNodeActive ? '#38bdf8' : '#2563eb'} 
-                                            style={{ transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', filter: isNodeActive ? 'drop-shadow(0 0 8px #38bdf8)' : 'none' }} 
-                                          />
+                                          <circle cx={p.x} cy={p.y} r={isNodeActive ? 7.5 : 4} fill={isNodeActive ? '#38bdf8' : '#2563eb'} style={{ transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', filter: isNodeActive ? 'drop-shadow(0 0 8px #38bdf8)' : 'none' }} />
 
                                           {(i % 3 === 0 || isNodeActive) && (
                                             <text x={p.x} y="224" fill={isNodeActive ? '#38bdf8' : '#64748b'} fontSize="9" textAnchor="middle" fontWeight="700" transform={`rotate(15, ${p.x}, 224)`}>
@@ -818,8 +921,6 @@ useEffect(() => {
                   <div style={styles.viewTitle}>Monthly Power Metrics & Specific Energy Index</div>
                   
                   {(() => {
-                    const TARIFF_RATE = 21;
-
                     const processedEnergyRows = csvData.map((row) => {
                       if (!row) return null;
                       const rowVals = Object.values(row);
@@ -835,24 +936,21 @@ useEffect(() => {
                         cumulativeGrid: parseFloat(String(rowVals[1] || '0').replace(/[^0-9.]/g, '')) || 0,
                         dailyKwh: kwhVal,
                         dmProd: dmVal,
-                        calculatedCost: kwhVal * TARIFF_RATE
+                        calculatedCost: kwhVal * electricityTariff
                       };
                     }).filter(Boolean);
 
                     const grossMonthlyKwh = processedEnergyRows.reduce((sum, r) => sum + r.dailyKwh, 0);
                     const grossMonthlyDM = processedEnergyRows.reduce((sum, r) => sum + r.dmProd, 0);
-                    const grossEnergyCostPool = grossMonthlyKwh * TARIFF_RATE;
+                    const grossEnergyCostPool = grossMonthlyKwh * electricityTariff;
                     const plantSecIndex = grossMonthlyDM > 0 ? (grossMonthlyKwh / grossMonthlyDM) : 0;
-
                     const peakDailyCost = Math.max(...processedEnergyRows.map(d => d.calculatedCost), 10000) * 1.15;
                     const stepX = 920 / (processedEnergyRows.length - 1 || 1);
-
                     const graphPoints = processedEnergyRows.map((d, i) => {
                       const x = 75 + (i * stepX);
                       const y = 190 - ((d.calculatedCost / peakDailyCost) * 150);
                       return { ...d, x, y };
                     });
-
                     return (
                       <>
                         {/* EXECUTIVE ENERGY PROFILE KPI BANNER */}
@@ -884,10 +982,10 @@ useEffect(() => {
                           </div>
                           <div style={{ position: 'relative', width: '100%' }}>
                             <svg viewBox="0 0 1000 240" style={{ width: '100%', height: 'auto', overflow: 'visible' }}>
-                              <line x1="60" y1="40" x2="980" y2="40" stroke="#f1f5f9" strokeWidth="1" />
-                              <line x1="60" y1="90" x2="980" y2="90" stroke="#f1f5f9" strokeWidth="1" />
-                              <line x1="60" y1="140" x2="980" y2="140" stroke="#f1f5f9" strokeWidth="1" />
-                              <line x1="60" y1="190" x2="980" y2="190" stroke="#cbd5e1" strokeWidth="2" />
+                              <line x1="60" y1="40" stroke="#f1f5f9" strokeWidth="1" x2="980" y2="40" />
+                              <line x1="60" y1="90" stroke="#f1f5f9" strokeWidth="1" x2="980" y2="90" />
+                              <line x1="60" y1="140" stroke="#f1f5f9" strokeWidth="1" x2="980" y2="140" />
+                              <line x1="60" y1="190" stroke="#cbd5e1" strokeWidth="2" x2="980" y2="190" />
                               
                               <text x="52" y="44" fill="#94a3b8" fontSize="10" textAnchor="end">{Math.round(peakDailyCost * 1.0).toLocaleString()} LKR</text>
                               <text x="52" y="94" fill="#94a3b8" fontSize="10" textAnchor="end">{Math.round(peakDailyCost * 0.66).toLocaleString()} LKR</text>
@@ -908,7 +1006,6 @@ useEffect(() => {
                                     fill="url(#energyCostGrad)"
                                     d={`M 75 190 ${graphPoints.map(p => `L ${p.x} ${p.y}`).join(' ')} L ${graphPoints[graphPoints.length - 1].x} 190 Z`}
                                   />
-
                                   <path
                                     className="energy-spline-path"
                                     fill="none" stroke="#2563eb" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"
@@ -917,21 +1014,10 @@ useEffect(() => {
 
                                   {graphPoints.map((p, i) => {
                                     const isHovered = hoveredIndex === `cost-node-${i}`;
-
                                     return (
                                       <g key={i} onMouseEnter={() => setHoveredIndex(`cost-node-${i}`)} onMouseLeave={() => setHoveredIndex(null)} style={{ cursor: 'pointer' }}>
                                         {isHovered && <line x1={p.x} y1="40" x2={p.x} y2="190" stroke="#38bdf8" strokeWidth="1.5" strokeDasharray="2 2" />}
-                                        
-                                        <circle 
-                                          cx={p.x} 
-                                          cy={p.y} 
-                                          r={isHovered ? 7.5 : 4.5} 
-                                          fill={isHovered ? '#38bdf8' : '#2563eb'} 
-                                          style={{ 
-                                            transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)',
-                                            filter: isHovered ? 'drop-shadow(0 0 8px #38bdf8)' : 'none'
-                                          }} 
-                                        />
+                                        <circle cx={p.x} cy={p.y} r={isHovered ? 7.5 : 4.5} fill={isHovered ? '#38bdf8' : '#2563eb'} style={{ transition: 'all 0.5s cubic-bezier(0.22, 1, 0.36, 1)', filter: isHovered ? 'drop-shadow(0 0 8px #38bdf8)' : 'none' }} />
                                         
                                         {(i % 3 === 0 || isHovered) && (
                                           <text x={p.x} y="212" fill={isHovered ? '#2563eb' : '#64748b'} fontSize="9" textAnchor="middle" fontWeight="700" transform={`rotate(15, ${p.x}, 212)`}>
@@ -957,7 +1043,7 @@ useEffect(() => {
                           </div>
                         </div>
 
-                        {/* Clean Data Ledger Table */}
+                        {/* Data Ledger Table */}
                         <div style={{ ...styles.card, marginTop: '24px' }}>
                           <table style={styles.table}>
                             <thead>
@@ -999,9 +1085,7 @@ useEffect(() => {
                     const processedChemRows = csvData.map((row) => {
                       if (!row) return null;
                       const trueColumns = [];
-                      Object.keys(row).forEach(key => {
-                        if (key !== '__parsed_extra') trueColumns.push(row[key]);
-                      });
+                      Object.keys(row).forEach(key => { if (key !== '__parsed_extra') trueColumns.push(row[key]); });
                       if (row.__parsed_extra && Array.isArray(row.__parsed_extra)) {
                         trueColumns.push(...row.__parsed_extra);
                       }
@@ -1043,7 +1127,6 @@ useEffect(() => {
 
                     const totalMonthlyOPEX = Object.values(areaBudgets).reduce((a, b) => a + b, 0);
                     const maxStockInSheet = Math.max(...processedChemRows.map(r => r.stockKg), 1);
-
                     return (
                       <>
                         <div style={{ ...styles.card, marginBottom: '32px', background: '#ffffff' }}>
@@ -1132,7 +1215,7 @@ useEffect(() => {
                                         {item.stockKg.toLocaleString()} <span style={{ fontSize: '12px', fontWeight: '500', color: '#64748b' }}>kg</span>
                                       </div>
                                     </div>
-                                    <div style={{ textAlign: 'right' }}>
+                                    <div style={{ textAnchor: 'right' }}>
                                       <div style={{ fontSize: '10px', fontWeight: '600', color: '#94a3b8', textTransform: 'uppercase' }}>May Usage</div>
                                       <div style={{ fontSize: '18px', fontWeight: '800', color: '#334155' }}>
                                         {item.consumptionKg > 0 ? `${item.consumptionKg.toLocaleString()} kg` : '0 kg'}
@@ -1149,7 +1232,7 @@ useEffect(() => {
                                     <span style={{ color: '#94a3b8', fontWeight: '500' }}>Rate: </span>
                                     <strong style={{ color: '#475569' }}>{item.unitPrice > 0 ? `${item.unitPrice.toLocaleString()} LKR` : 'N/A'}</strong>
                                   </div>
-                                  <div style={{ textAlign: 'right' }}>
+                                  <div style={{ textAnchor: 'right' }}>
                                     <span style={{ color: '#94a3b8', fontWeight: '500' }}>Cost: </span>
                                     <strong style={{ color: '#2563eb' }}>{item.totalOpex > 0 ? `${item.totalOpex.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} LKR` : '0.00 LKR'}</strong>
                                   </div>
@@ -1161,6 +1244,165 @@ useEffect(() => {
                       </>
                     );
                   })()}
+                </div>
+              )}
+
+              {/* ========================================================================= */}
+              {/* NEW SUB TAB 4: BRAND NEW UNIT PRODUCTION COST METRIC PAGE                 */}
+              {/* ========================================================================= */}
+              {activeTab === 'Unit Production Cost' && (
+                <div className="tab-entry-anim">
+                  <div style={styles.viewTitle}>DM Water Unit Production Cost</div>
+                  
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '32px', alignItems: 'start' }}>
+                    
+                    {/* LEFT COLUMN: DYNAMIC 4-SEGMENT DONUT CHART AND ACCORDIONS */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 32px', backgroundColor: '#ffffff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.01)' }}>
+                        <div style={styles.flowLabel}>Live Cost Distribution Breakdown</div>
+                        
+                        {/* Dynamic 4-Segment Donut Chart */}
+                        <div style={{ position: 'relative', width: '220px', height: '220px', marginTop: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg viewBox="0 0 36 36" style={{ width: '100%', height: '100%', transform: 'rotate(-90deg)', overflow: 'visible' }}>
+                            {/* Background track to prevent clipping gaps */}
+                            <circle cx="18" cy="18" r="15.915" fill="none" stroke="#f1f5f9" strokeWidth="4.5" />
+                            
+                            {/* Segment 1: Energy Cost */}
+                            <circle 
+                              cx="18" cy="18" r="15.915" fill="none" 
+                              stroke="#3b82f6" strokeWidth="4.5" 
+                              strokeDasharray={`${pctEnergy} 100`} 
+                              strokeDashoffset="0" 
+                              style={{ transition: 'stroke-dasharray 0.3s ease, stroke-dashoffset 0.3s ease' }}
+                            />
+                            
+                            {/* Segment 2: Chemical Cost */}
+                            <circle 
+                              cx="18" cy="18" r="15.915" fill="none" 
+                              stroke="#10b981" strokeWidth="4.5" 
+                              strokeDasharray={`${pctChem} 100`} 
+                              strokeDashoffset={`-${pctEnergy}`} 
+                              style={{ transition: 'stroke-dasharray 0.3s ease, stroke-dashoffset 0.3s ease' }}
+                            />
+                            
+                            {/* Segment 3: Equipment Wear Cost */}
+                            <circle 
+                              cx="18" cy="18" r="15.915" fill="none" 
+                              stroke="#f59e0b" strokeWidth="4.5" 
+                              strokeDasharray={`${pctWear} 100`} 
+                              strokeDashoffset={`-${pctEnergy + pctChem}`} 
+                              style={{ transition: 'stroke-dasharray 0.3s ease, stroke-dashoffset 0.3s ease' }}
+                            />
+                            
+                            {/* Segment 4: Consumables Cost */}
+                            <circle 
+                              cx="18" cy="18" r="15.915" fill="none" 
+                              stroke="#8b5cf6" strokeWidth="4.5" 
+                              strokeDasharray={`${pctCons} 100`} 
+                              strokeDashoffset={`-${pctEnergy + pctChem + pctWear}`} 
+                              style={{ transition: 'stroke-dasharray 0.3s ease, stroke-dashoffset 0.3s ease' }}
+                            />
+                          </svg>
+                          
+                          {/* Center Absolute Content (Stays upright despite chart rotation) */}
+                          <div style={{ position: 'absolute', textAlign: 'center' }}>
+                            <div style={{ fontSize: '30px', fontWeight: '900', color: '#0f172a', letterSpacing: '-0.03em' }}>
+                              {unitTotalCost.toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '12px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginTop: '2px' }}>
+                              LKR / m³
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Proportional Linear Metric Strip */}
+                        <div style={{ width: '100%', marginTop: '32px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', marginBottom: '8px' }}>
+                            <span>Proportional Resource Distribution</span>
+                            <span>Total Pool: 100%</span>
+                          </div>
+                          <div style={{ display: 'flex', width: '100%', height: '14px', borderRadius: '20px', overflow: 'hidden', boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.1)' }}>
+                            <div style={{ width: `${pctEnergy}%`, backgroundColor: '#3b82f6', transition: 'width 0.3s ease' }} />
+                            <div style={{ width: `${pctChem}%`, backgroundColor: '#10b981', transition: 'width 0.3s ease' }} />
+                            <div style={{ width: `${pctWear}%`, backgroundColor: '#f59e0b', transition: 'width 0.3s ease' }} />
+                            <div style={{ width: `${pctCons}%`, backgroundColor: '#8b5cf6', transition: 'width 0.3s ease' }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Financial Pool Expenditure Grid */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div style={{ ...styles.card, padding: '16px 20px', background: '#f8fafc' }}>
+                          <div style={styles.flowLabel}>Total Monthly DM Volume</div>
+                          <div style={{ fontSize: '20px', fontWeight: '800', color: '#0f172a', marginTop: '4px' }}>
+                            {aggregateDMVolume.toLocaleString(undefined, { maximumFractionDigits: 2 })} <span style={{ fontSize: '12px', color: '#64748b' }}>m³</span>
+                          </div>
+                        </div>
+                        <div style={{ ...styles.card, padding: '16px 20px', background: '#f8fafc' }}>
+                          <div style={styles.flowLabel}>Gross Op-Expenditure Pool</div>
+                          <div style={{ fontSize: '20px', fontWeight: '800', color: '#2563eb', marginTop: '4px' }}>
+                            {((unitTotalCost * aggregateDMVolume) || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span style={{ fontSize: '12px', color: '#64748b' }}>LKR</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* RIGHT COLUMN: LIVE SCENARIO OPTIMIZER AND EXPENSES BREAKDOWN LIST */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                      
+                      {/* SIMULATOR SLIDERS MODULE */}
+                      <div style={styles.card}>
+                        <h3 style={{ ...styles.cardTitle, fontSize: '16px', textTransform: 'uppercase', letterSpacing: '0.02em' }}>
+                          Dynamic Simulator
+                        </h3>
+                        <p style={{ fontSize: '12px', color: '#64748b', margin: '4px 0 20px 0', lineHeight: '1.4' }}>
+                          Simulate fluctuations or shifts in operational parameters dynamically below.
+                        </p>
+
+                        <div style={{ marginBottom: '20px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
+                            <span>Equipment Wear Factor</span>
+                            <span style={{ color: '#f59e0b', fontFamily: 'monospace' }}>{(simEq * 100).toFixed(1)}%</span>
+                          </div>
+                          <input type="range" min="0" max="0.2" step="0.005" value={simEq} onChange={(e) => setSimEq(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#f59e0b', cursor: 'ew-resize' }} />
+                        </div>
+
+                        <div style={{ marginBottom: '4px' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', fontWeight: '700', color: '#334155', marginBottom: '8px' }}>
+                            <span>Consumable Cost Factor</span>
+                            <span style={{ color: '#8b5cf6', fontFamily: 'monospace' }}>{(simCons * 100).toFixed(1)}%</span>
+                          </div>
+                          <input type="range" min="0" max="0.2" step="0.005" value={simCons} onChange={(e) => setSimCons(parseFloat(e.target.value))} style={{ width: '100%', accentColor: '#8b5cf6', cursor: 'ew-resize' }} />
+                        </div>
+
+                        <button onClick={() => { setSimEq(equipmentFactor); setSimCons(consumableFactor); }} style={{ marginTop: '20px', width: '100%', padding: '10px 14px', border: '1px dashed #cbd5e1', borderRadius: '6px', background: '#f8fafc', color: '#475569', fontSize: '12px', fontWeight: '700', cursor: 'pointer', transition: 'all 0.3s' }}>
+                          Reset to Sheet Constants
+                        </button>
+                      </div>
+
+                      {/* EXPENSES BREAKDOWN LIST */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {[
+                          { lbl: 'Energy Cost Contribution', color: '#3b82f6', value: unitEnergyCost, pct: pctEnergy },
+                          { lbl: 'Chemical Cost Contribution', color: '#10b981', value: unitChemicalCost, pct: pctChem },
+                          { lbl: 'Equipment Wear Cost Allocation', color: '#f59e0b', value: unitWearCost, pct: pctWear },
+                          { lbl: 'Consumables Operational Factor', color: '#8b5cf6', value: unitConsumableCost, pct: pctCons }
+                        ].map((costItem, cidx) => (
+                          <div key={cidx} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '8px', border: '1px solid #e2e8f0', backgroundColor: '#ffffff' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                              <span style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: costItem.color, display: 'inline-block' }} />
+                              <span style={{ fontSize: '13px', fontWeight: '600', color: '#475569' }}>{costItem.lbl}</span>
+                            </div>
+                            <div style={{ textAnchor: 'right' }}>
+                              <span style={{ fontSize: '14px', fontWeight: '800', color: '#0f172a', marginRight: '8px' }}>{costItem.value.toFixed(2)} <span style={{ fontSize: '10px', color: '#64748b', fontWeight: '500' }}>LKR</span></span>
+                              <span style={{ fontSize: '11px', fontWeight: '600', color: '#94a3b8', background: '#f1f5f9', padding: '2px 6px', borderRadius: '4px' }}>{costItem.pct.toFixed(1)}%</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                    </div>
+                  </div>
                 </div>
               )}
             </>
